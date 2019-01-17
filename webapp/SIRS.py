@@ -1,5 +1,5 @@
 from flask import Flask, request, json, render_template
-from search.retrievalmodel import BooleanRM, BooleanScoreModifier, CosineRM, CosineScoreModifier, PageRankScoreModifier
+from search.retrievalmodel import BooleanRM, BooleanScoreModifier
 from search.query import Matching, Query
 from search.evaluate import Evaluate
 from index.documents import Fields
