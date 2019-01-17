@@ -27,7 +27,9 @@ class Node(object):
 class PageRank(object):
 
     def __init__(self, webgraph, num_docs):
-        pass
+        self.graph = list()
+        for n in range(0, num_docs):
+            self.graph.append(Node(n))
 
     def calculate_pagerank(self):
         pass
