@@ -45,7 +45,7 @@ def searcher():
     results = []
     for i in range(result_set.result_size):
         doc_id = result_set.doc_ids[i]
-        doc = DirectIndex().get_doc(doc_id)
+        doc = DirectIndex().get_doc(doc_id-1)
         title = doc.resources['title']
         if title is None:
             title = ''

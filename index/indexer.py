@@ -9,6 +9,7 @@ import sys
 import tarfile
 
 
+
 class Indexer:
     doc_idx = os.path.join(ROOT_DIR, 'data/doc_idx.txt')
     doc_idx_offset = os.path.join(ROOT_DIR, 'data/doc_idx_offset.txt')
@@ -19,12 +20,12 @@ class Indexer:
     anchor_index = os.path.join(ROOT_DIR, 'data/anc_idx.txt')
     web_graph = os.path.join(ROOT_DIR, 'data/webgraph.txt')
 
-    run_size = 100000
-    compress = False
+    run_size = 10000
+    compress = 'gamma' #'variablebyte' #'gamma' or 'none'
 
     def __init__(self):
         self.word_id = 0
-        self.doc_id = 0
+        self.doc_id = 1
         self.run_number = 0
         self.run = list()
         self.voc = dict()
@@ -253,6 +254,7 @@ class Indexer:
                 out_file.write(str(p.doc) + '\t' + str(p.term) + '\t' + str(p.field) + '\t' + str(p.frequency) + '\n' )
         self.run = list()
 
+
     def merge_runs(self):
         merge_heap = []
         rfv = list()
@@ -268,14 +270,14 @@ class Indexer:
             ro = MergeDocumentTerms(occurrence, i)
             heapq.heappush(merge_heap, ro)
 
-        with open(Indexer.idx, 'w', newline='\n') as out_file, open(Indexer.idx_term_offset, 'w', newline='\n') as tos_file:
+        with open(Indexer.idx, 'wb') as out_file, open(Indexer.idx_term_offset, 'w', newline='\n') as tos_file:
             # Encode the fields in the inverted index
             sb = list()
             for k, v in Fields().get_items():
                 sb.append(str(k) + ',' + str(v.field))
 
             line = ';'.join(sb)
-            out_file.write(line + '\n')
+            out_file.write(bytes(line + '\n', 'utf8'))
 
             current_term = 0
             current_term_offset = len(line) + 1
@@ -285,7 +287,6 @@ class Indexer:
 
             print('Merging run files...')
 
-            df = 0
             posting = dict()
 
             for f in Fields().get_fields():
@@ -301,30 +302,36 @@ class Indexer:
                     heapq.heappush(merge_heap, ro)
 
                 # Saving to the file
-                if first.term > current_term:
-                    tos_file.write(str(current_term_offset) + '\n')
-                    sb = list()
-                    for f in Fields().get_fields():
-                        sb.append('#' + str(f.field) + ';'.join(posting[f.field]))
 
-                    p = str(current_term) + '\t' + ''.join(sb) + '\n'
-                    out_file.write(p)
-                    current_term_offset += len(p)
-                    current_term = first.term
-                    for f in Fields().get_fields():
-                        posting[f.field] = list()
-                    df = 0
-                elif first.term < current_term:
-                    print('Term ids messed up, something went wrong with the sorting')
+                if Indexer.compress == 'gamma':
+                    # TODO gamma
+                    raise NotImplementedError('Gamma compression is not implemented, yet')
+                elif Indexer.compress == 'variablebyte':
+                    # TODO vbe
+                    raise NotImplementedError('Variable byte compression is not implemented, yet')
+                elif Indexer.compress == 'none':
+                    if first.term > current_term:
+                        tos_file.write(str(current_term_offset) + '\n')
+                        sb = list()
+                        for f in Fields().get_fields():
+                            sb.append('#' + str(f.field) + ';'.join(posting[f.field]))
 
-                if Indexer.compress:
-                    pass
+                        p = str(current_term) + '\t' + ''.join(sb) + '\n'
+                        out_file.write(bytes(p, 'utf8'))
+                        current_term_offset += len(p)
+                        current_term = first.term
+                        for f in Fields().get_fields():
+                            posting[f.field] = list()
+                    elif first.term < current_term:
+                        print('Term ids messed up, something went wrong with the sorting')
                 else:
-                    df+=1
-                    zsb = posting[first.field.field]
-                    zsb.append('(' + str(first.doc) + ',' + str(first.frequency) + ')')
-        print('Index merging finished')
+                    raise ValueError('Index compression not defined')
 
+                if Indexer.compress == 'gamma' or Indexer.compress == 'variablebyte':
+                    posting[first.field.field].append((first.doc, first.frequency))
+                else:
+                    posting[first.field.field].append('(' +str(first.doc) + ',' + str(first.frequency) + ')')
+        print('Index merging finished')
 
 class DocumentTerm(object):
     def __init__(self, term_id, doc_id, frequency, field):
@@ -420,7 +427,7 @@ if __name__ == "__main__":
         print('Using user provided parameters')
         crawl = sys.argv[1]
     else:
-        crawl = os.path.join(ROOT_DIR, 'data/NDCrawler_result_.tar')
+        crawl = os.path.join(ROOT_DIR, 'data/NDCrawler_result_large.tar')
 
     indexer = Indexer()
     indexer.index_tarfile(crawl)

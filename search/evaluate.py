@@ -32,18 +32,18 @@ class Evaluate:
 
     def parse(self, files):
         for qrel in files:
-            with open(qrel) as r:
+            with open(join(Evaluate.QRELS_FLDR, qrel)) as r:
                 q = ''
                 for line in r:
                     if line.startswith('query:'):
                         q = line[7:].strip()
                         if q not in self.rels:
                             self.rels[q] = {}
-                        else:
-                            rel = line.split(' ')
-                            if len(rel) != 2:
-                                raise Exception('invalid qrels file: ' + str(qrel))
-                            self.rels[q][int(rel[0])] = int(rel[1])
+                    else:
+                        rel = line.strip().split()
+                        if len(rel) != 2:
+                            raise Exception('invalid qrels file: ' + str(qrel))
+                        self.rels[q][int(rel[0])] = int(rel[1])
 
     def evaluate(self, result_set, query, size=None):
         if size is None:

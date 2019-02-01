@@ -13,12 +13,12 @@ class NDCrawler(Spider):
     data = os.path.join(ROOT_DIR, 'data')
 
     custom_settings = {
-        'DEPTH_LIMIT': 1,
+        'DEPTH_LIMIT': 3,
     }
 
     def start_requests(self):
         urls = [
-            'http://umich.edu',
+            'http://cse.nd.edu',
         ]
 
         for url in urls:
@@ -40,7 +40,7 @@ class NDCrawler(Spider):
             encoded_url = os.path.join(NDCrawler.tmp, encoded_url)
             with open(encoded_url, 'wb+') as file:
                 file.write(response.body)
-            with tarfile.open(os.path.join(NDCrawler.data, NDCrawler.name) + "_result_" + ".tar", "a") as tar:
+            with tarfile.open(os.path.join(NDCrawler.data, NDCrawler.name) + "_result_large" + ".tar", "a") as tar:
                 tar.add(encoded_url)
             os.remove(encoded_url)
 
@@ -48,7 +48,7 @@ class NDCrawler(Spider):
             for url in urls:
                 url = response.urljoin(url)
                 parsed_url = urlparse(url)
-                if parsed_url.hostname is not None and parsed_url.hostname.endswith('umich.edu'):
+                if parsed_url.hostname is not None and parsed_url.hostname.endswith('nd.edu'):
                     yield Request(url, callback=self.parse)
                 else:
                     pass

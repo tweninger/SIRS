@@ -242,12 +242,16 @@ class Token(object):
 class WhitespaceTokenizer(object):
     @staticmethod
     def tokenizer_str(string):
-        # TODO Tokenize this string
-        return list()
+        return re.split('[^a-zA-Z]', string)
 
 
 class CaseFoldingNormalizer(object):
     @staticmethod
     def normalize(token_list):
-        # TODO Normalize the text in this list
-        return list()
+        new_list = list()
+        for tok in token_list:
+            tok = tok.strip()
+            if len(tok) == 0 :
+                continue
+            new_list.append(str(tok).lower())
+        return new_list
