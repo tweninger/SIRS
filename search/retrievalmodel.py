@@ -1,5 +1,6 @@
 import abc, math
 from search.query import ResultSet, Query
+from index.direct_index import DirectIndex
 
 
 class RetrievalModel(abc.ABC):
@@ -62,3 +63,12 @@ class BooleanScoreModifier (ScoreModifier):
 
         return True
 
+class CosineRM (RetrievalModel):
+    def score(self, posting, document_frequency, field):
+        return posting.frequency * math.log2(DirectIndex().get_num_docs()/document_frequency)
+
+
+class CosineScoreModifier (ScoreModifier):
+    def modify_scores(self, index, query: Query, result_set: ResultSet, field):
+        for i in range(len(result_set.scores)):
+            result_set.scores[i] = result_set.scores[i] / DirectIndex().get_doc(result_set.doc_ids[i]-1).get_num_tokens(field.field)

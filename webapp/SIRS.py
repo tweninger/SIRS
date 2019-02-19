@@ -1,5 +1,5 @@
 from flask import Flask, request, json, render_template
-from search.retrievalmodel import BooleanRM, BooleanScoreModifier
+from search.retrievalmodel import BooleanRM, BooleanScoreModifier, CosineRM, CosineScoreModifier
 from search.query import Matching, Query
 from search.evaluate import Evaluate
 from index.documents import Fields
@@ -37,6 +37,10 @@ def searcher():
         matching = Matching(BooleanRM())
         Fields().assign_weights(wgts)
         matching.add_score_modifier(BooleanScoreModifier())
+    elif model == 'Cosine':
+        matching = Matching(CosineRM())
+        Fields().assign_weights(wgts)
+        matching.add_score_modifier(CosineScoreModifier())
     result_set = matching.match(Query(query))
 
     g = Evaluate()

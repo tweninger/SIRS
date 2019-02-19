@@ -1,13 +1,15 @@
 from index.documents import HTMLDocument, Fields, Field, Token
 from index.pagerank import PageRank
+from numpy import random as rnd
 from urllib.parse import quote
 from operator import attrgetter
 from definitions import ROOT_DIR
+from bitarray import bitarray
 import os
 import heapq
 import sys
 import tarfile
-
+import struct
 
 
 class Indexer:
@@ -21,7 +23,7 @@ class Indexer:
     web_graph = os.path.join(ROOT_DIR, 'data/webgraph.txt')
 
     run_size = 10000
-    compress = 'gamma' #'variablebyte' #'gamma' or 'none'
+    compress = 'none' #'variablebyte' #'gamma' or 'none'
 
     def __init__(self):
         self.word_id = 0
@@ -304,11 +306,9 @@ class Indexer:
                 # Saving to the file
 
                 if Indexer.compress == 'gamma':
-                    # TODO gamma
-                    raise NotImplementedError('Gamma compression is not implemented, yet')
+                    raise NotImplementedError('Not yet implemented')
                 elif Indexer.compress == 'variablebyte':
-                    # TODO vbe
-                    raise NotImplementedError('Variable byte compression is not implemented, yet')
+                    raise NotImplementedError('Not yet implemented')
                 elif Indexer.compress == 'none':
                     if first.term > current_term:
                         tos_file.write(str(current_term_offset) + '\n')

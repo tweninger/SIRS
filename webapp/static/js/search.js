@@ -56,7 +56,7 @@ function submit() {
 			}
 
 			var html = "";
-			for(var i=0; i<max; i++){
+			for(var i=0; i<Math.min(max,size); i++){
 				var title = msg.data[i].title; 
 				var docid = msg.data[i].docid; 
 				var url = decodeURIComponent(msg.data[i].url);
@@ -73,8 +73,8 @@ function submit() {
 				html += "<li class='list-group-item'><strong>Precision:</strong> <span class='badge'>" + msg.eval['precision'] + "</span></li>";
 				html += "<li class='list-group-item'><strong>Recall:</strong> <span class='badge'>" + msg.eval['recall'] + "</span></li>";
 				html += "<li class='list-group-item'><strong>F1-Measure:</strong> <span class='badge'>" + msg.eval['f1'] + "</span></li>";
-				html += "<li class='list-group-item'><strong>Average Precision:</strong> <span class='badge'>" + msg.eval['avgprec'] + "</span></li>";
-				html += "<li class='list-group-item'><strong>Mean Reciporal Rank:</strong> <span class='badge'>" + msg.eval['mrr'] + "</span></li>";
+				html += "<li class='list-group-item'><strong>Average Precision:</strong> <span class='badge'>" + msg.eval['avg_prec'] + "</span></li>";
+				html += "<li class='list-group-item'><strong>Reciporal Rank:</strong> <span class='badge'>" + msg.eval['rr'] + "</span></li>";
 				html += "<li class='list-group-item'><strong>Normalized Discounted Cumulative Gain:</strong> <span class='badge'>" + msg.eval['ndcg'] + "</span></li>";
 				html += "</ul>";
 			}

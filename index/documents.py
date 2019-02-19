@@ -7,7 +7,10 @@ class Document(object):
 
     def __init__(self, doc_id, file = None, line = None):
         if file is not None and line is None:
-            self.name = file.name
+            name = file.name
+            if str(file.name).startswith('Users/tweni/Documents/workspace/SIRS/data/'):
+                name = file.name[len('Users/tweni/Documents/workspace/SIRS/data/'):]
+            self.name = name
             self.doc_id = doc_id
             self.num_tokens = dict()
             self.resources = dict()
