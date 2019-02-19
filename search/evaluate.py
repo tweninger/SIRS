@@ -123,12 +123,14 @@ class Evaluate:
             return 0
         for rel in self.rels[query]:
             if rel > Evaluate.REL_THRESH:
-                # HW3 students, don't copy this total_relevant incrementer section - it'll double/triple/... count
                 total_relevant += 1
 
         for docid in tbl:
             if docid not in self.rels[query]:
                 print('No relevance information for docID: ' + str(docid))
+                self.missing += 1
+                # HW3 Students, don'y copy the missing+=1 code from here.
+                # This will cause you to double/triple/... count missing docIDs.
                 continue
             rel = self.rels[query][docid]
 
