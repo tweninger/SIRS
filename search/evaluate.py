@@ -121,7 +121,7 @@ class Evaluate:
             print('No relevance judgements for query: ' + str(query))
             self.missing = -1
             return 0
-        for rel in self.rels[query]:
+        for rel in self.rels[query].values():
             if rel > Evaluate.REL_THRESH:
                 total_relevant += 1
 
