@@ -55,7 +55,7 @@ class Indexer:
                             url = url[8:]
                         if url.endswith('/'):
                             url = url[:-1]
-                        sb.append('\t' + quote(url, safe=''))
+                        sb.append('\t' + quote(url, safe='').replace('~', '%7E'))
                         for tok in v:
                             if tok.term.strip() == '':
                                 continue
@@ -306,9 +306,53 @@ class Indexer:
                 # Saving to the file
 
                 if Indexer.compress == 'gamma':
-                    raise NotImplementedError('Not yet implemented')
+                    if first.term > current_term:
+                        tos_file.write(str(current_term_offset) + '\n')
+                        out_file.write(struct.pack('i', current_term))
+                        current_term_offset += 4
+                        for f in Fields().get_fields():
+                            current_doc = 0
+                            out_file.write(struct.pack('c', bytes('#', 'utf8')))
+                            out_file.write(struct.pack('B', f.field))
+                            out_file.write(struct.pack('i', len(posting[f.field])))
+                            current_term_offset += 6
+                            outbits = bitarray()
+                            for post in posting[f.field]:
+                                outbits.extend(self.gamma_encode(post[0]-current_doc))
+                                current_doc = post[0]
+                                outbits.extend(self.gamma_encode(post[1]))
+                            towrite = outbits.tobytes()
+                            current_term_offset += len(towrite)
+                            out_file.write(towrite)
+                        current_term = first.term
+                        for f in Fields().get_fields():
+                            posting[f.field] = list()
+                    elif first.term < current_term:
+                        print('Term ids messed up, something went wrong with the sorting')
                 elif Indexer.compress == 'variablebyte':
-                    raise NotImplementedError('Not yet implemented')
+                    if first.term > current_term:
+                        tos_file.write(str(current_term_offset) + '\n')
+                        out_file.write(struct.pack('i', current_term))
+                        current_term_offset += 4
+                        for f in Fields().get_fields():
+                            current_doc = 0
+                            out_file.write(struct.pack('c', bytes('#', 'utf8')))
+                            out_file.write(struct.pack('B', f.field))
+                            out_file.write(struct.pack('i', len(posting[f.field])))
+                            current_term_offset += 6
+                            outbits = bitarray()
+                            for post in posting[f.field]:
+                                outbits.extend(self.variablebyte_encode(post[0]-current_doc))
+                                current_doc = post[0]
+                                outbits.extend(self.variablebyte_encode(post[1]))
+                            towrite = outbits.tobytes()
+                            current_term_offset += len(towrite)
+                            out_file.write(towrite)
+                        current_term = first.term
+                        for f in Fields().get_fields():
+                            posting[f.field] = list()
+                    elif first.term < current_term:
+                        print('Term ids messed up, something went wrong with the sorting')
                 elif Indexer.compress == 'none':
                     if first.term > current_term:
                         tos_file.write(str(current_term_offset) + '\n')
@@ -332,6 +376,40 @@ class Indexer:
                 else:
                     posting[first.field.field].append('(' +str(first.doc) + ',' + str(first.frequency) + ')')
         print('Index merging finished')
+
+    def gamma_encode(self, num):
+        if num == 0:
+            raise ValueError('Number cannot be 0')
+        bitlist = [int(x) for x in bin(num)[2:]]
+        offset = bitarray()
+        collect = False
+        for _, v in enumerate(bitlist):
+            if collect:
+                offset.append(v)
+            if v == 1:
+                collect = True
+        unary = bitarray()
+        for i in range(len(offset)):
+            unary.append(True)
+        unary.append(False)
+        gamma = unary
+        for _, v in enumerate(offset):
+            gamma.append(v)
+        return gamma
+
+    def variablebyte_encode(self, num):
+        bitlist = [int(x) for x in bin(num)[2:]]
+        vbe = list()
+        while len(bitlist) > 7:
+            bitler = [0] + bitlist[-7:]
+            vbe = bitler + vbe
+            bitlist = bitlist[:-7]
+        vbe = (8 - len(bitlist)) * [0] + bitlist + vbe
+        if len(vbe) >= 16:
+            for i in range(-16, -len(vbe)-1, -8):
+                vbe[i] = 1
+
+        return bytearray(vbe)
 
 class DocumentTerm(object):
     def __init__(self, term_id, doc_id, frequency, field):

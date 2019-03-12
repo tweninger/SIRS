@@ -52,9 +52,120 @@ class InvertedIndex:
         offset = self.offsets[term_id]
         postinglist = None
         if Indexer.compress == 'gamma':
-            raise NotImplementedError('Not yet implemented')
+            postinglist = PostingList()
+            with open(self.idx, 'rb') as idx:
+                idx.seek(offset)
+                term_id, = struct.unpack('i', idx.read(4))
+                postinglist.term_id = term_id
+                for fi in range(3):
+                    doc = -1
+                    freq = -1
+                    cur_doc = 0
+                    hash, = struct.unpack('s', idx.read(1))
+                    if hash.decode('utf8') != '#':
+                        raise ValueError('Weve done something wrong')
+                    field, = struct.unpack('b', idx.read(1))
+                    postinglist.postings[field] = list()
+                    leng, = struct.unpack('i', idx.read(4))
+                    i=0
+                    unary=True
+                    unary_leng = 0
+                    offset = list()
+                    while i < leng:
+                        bite, = struct.unpack('B', idx.read(1))
+                        bitlist = [int(x) for x in bin(bite)[2:]]
+                        bitlist = (8 - len(bitlist)) * [0] + bitlist
+                        #give me gamma
+                        for _, bit in enumerate(bitlist):
+
+                            if (not unary) or (unary and unary_leng == 0 and bit == 0):
+
+                                if unary_leng > 0:
+                                    offset.append(bit)
+                                    unary_leng -= 1
+
+                                if unary_leng == 0:
+                                    offset = [1] + offset
+                                    out = 0
+                                    for b in offset:
+                                        out = (out << 1) | b
+                                    if doc == -1:
+                                        doc = cur_doc + out
+                                        offset = list()
+                                        unary = True
+                                    else:
+                                        freq = out
+                                        post = Posting(term_id, doc, freq)
+                                        postinglist.postings[field].append(post)
+                                        cur_doc = doc
+                                        offset = list()
+                                        doc = -1
+                                        freq = -1
+                                        i += 1
+                                        if i >= leng:
+                                            break
+
+                                        unary = True
+                            else:
+                                # count till 0
+                                if bit == 0:
+                                    unary = False
+                                else:
+                                    unary_leng += 1
         elif Indexer.compress == "variablebyte":
-            raise NotImplementedError('Not yet implemented')
+            postinglist = PostingList()
+            with open(self.idx, 'rb') as idx:
+                idx.seek(offset)
+                term_id, = struct.unpack('i', idx.read(4))
+                postinglist.term_id = term_id
+                for fi in range(3):
+                    doc = -1
+                    freq = -1
+                    cur_doc = 0
+                    hash, = struct.unpack('s', idx.read(1))
+                    if hash.decode('utf8') != '#':
+                        raise ValueError('Weve done something wrong')
+                    field, = struct.unpack('b', idx.read(1))
+                    postinglist.postings[field] = list()
+                    leng, = struct.unpack('i', idx.read(4))
+                    i = 0
+                    for i in range(0,leng):
+                        bite, = struct.unpack('B', idx.read(1))
+                        bitlist = [int(x) for x in bin(bite)[2:]]
+                        bitlist = (8 - len(bitlist)) * [0] + bitlist
+                        bites = list()
+                        bites.extend(bitlist[1:])
+                        while bitlist[0] == 1:
+                            # more to get
+                            bite, = struct.unpack('B', idx.read(1))
+                            bitlist = [int(x) for x in bin(bite)[2:]]
+                            bitlist = (8 - len(bitlist)) * [0] + bitlist
+
+                            bites.extend(bitlist[1:])
+                        out = 0
+                        for b in bites:
+                            out = (out << 1) | b
+                        doc = out + cur_doc
+                        cur_doc = doc
+
+                        bite, = struct.unpack('B', idx.read(1))
+                        bitlist = [int(x) for x in bin(bite)[2:]]
+                        bitlist = (8 - len(bitlist)) * [0] + bitlist
+                        bites = list()
+                        bites.extend(bitlist[1:])
+                        while bitlist[0] == 1:
+                            # more to get
+                            bite, = struct.unpack('B', idx.read(1))
+                            bitlist = [int(x) for x in bin(bite)[2:]]
+                            bitlist = (8 - len(bitlist)) * [0] + bitlist
+
+                            bites.extend(bitlist[1:])
+                        out = 0
+                        for b in bites:
+                            out = (out << 1) | b
+                        freq = out
+                        post = Posting(term_id, doc, freq)
+                        postinglist.postings[field].append(post)
         elif Indexer.compress == "none":
             with open(self.idx, 'r', newline='\n') as idx:
                 idx.seek(offset)
@@ -112,5 +223,5 @@ class Posting:
 
 if __name__ == "__main__":
     idx = InvertedIndex()
-    pl = idx.get_postings(5000)
+    pl = idx.get_postings(1)
     print(pl)
