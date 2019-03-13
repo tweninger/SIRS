@@ -1,15 +1,16 @@
 from index.inverted_index import InvertedIndex
 from index.lexicon import Lexicon
-from index.documents import WhitespaceTokenizer, Fields, Field
+from index.documents import WhitespaceTokenizer, CaseFoldingNormalizer, Fields, Field
+
 
 class Query:
-
-    def __init__(self, query_string, tokenizer = WhitespaceTokenizer):
+    def __init__(self, query_string, tokenizer = WhitespaceTokenizer, normalizer = CaseFoldingNormalizer):
         self.query_string = query_string
         self.tokenizer = tokenizer
-        self.terms = list()
-        for s in tokenizer.tokenizer_str(self.query_string):
-            self.terms.append(s)
+        self.normalizer = normalizer
+        toks = tokenizer.tokenizer_str(self.query_string)
+        toks = normalizer.normalize(toks)
+        self.terms = list(zip(toks, len(toks)*[1.0]))
 
 
 class Matching:
@@ -26,12 +27,21 @@ class Matching:
     def initialize(self, query_terms: Query):
         query_term_strings = query_terms.terms
         self.query_term_to_match_list = dict()
-        for query_term in query_term_strings:
+        for query_term, wgt in query_term_strings:
             t = Lexicon().get_term_id(query_term)
             if t != -1:
-                self.query_term_to_match_list[query_term] = t
+                self.query_term_to_match_list[query_term] = (t, wgt)
             else:
-                raise Exception('Term not found')
+                print('Term', query_term, 'not found. Skipping...')
+
+    def pseudo_relevance_match(self, query_terms):
+        # TODO implement pseudo relevance feedback matching
+        alpha = 0.9
+        beta = 0.75
+        N_rel = 5
+        # you are welcome to experiment with there values.
+
+        return self.match(query_terms)
 
     def match(self, query_terms):
         self.initialize(query_terms)
@@ -42,7 +52,7 @@ class Matching:
         posting_list_list = list()
 
         for term, term_id in self.query_term_to_match_list.items():
-            posting_list_list.append(self.index.get_postings(term_id))
+            posting_list_list.append((self.index.get_postings(term_id[0]), term_id[1]))
 
         for f in Fields().get_fields():
             accumulators = dict()
@@ -51,9 +61,13 @@ class Matching:
 
             # while not end of all posting lists
             for current_posting_list_index in range(len(posting_list_list)):
-                current_posting_list = posting_list_list[current_posting_list_index]
+                current_posting_list, wgt = posting_list_list[current_posting_list_index]
                 for current_posting in range(current_posting_list.size(f.field)):
-                    current_doc_id = posting_list_list[current_posting_list_index].postings[f.field][current_posting].doc
+                    posting_list, wgt = posting_list_list[current_posting_list_index]
+                    current_doc_id = posting_list.postings[f.field][current_posting].doc
+
+                    post = current_posting_list.postings[f.field][current_posting]
+                    post.frequency *= wgt
 
                     # We create a new hit for each new doc id considered
                     current_candidate = None
@@ -64,7 +78,7 @@ class Matching:
 
                     accumulators[current_doc_id] = current_candidate
 
-                    self.assign_score(current_posting_list_index, self.retrieval_model, current_candidate, current_posting_list.postings[f.field][current_posting], len(current_posting_list.postings[f.field]), f)
+                    self.assign_score(current_posting_list_index, self.retrieval_model, current_candidate, post, len(current_posting_list.postings[f.field]), f)
 
             self.result_set = ResultSet(accumulators.values())
             self.num_retrieved_docs = len(self.result_set.scores)
