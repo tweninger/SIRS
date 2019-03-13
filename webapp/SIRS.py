@@ -41,7 +41,7 @@ def searcher():
         matching = Matching(CosineRM())
         Fields().assign_weights(wgts)
         matching.add_score_modifier(CosineScoreModifier())
-    result_set = matching.match(Query(query))
+    result_set = matching.pseudo_relevance_match(Query(query))
 
     g = Evaluate()
     evaluation_results = g.evaluate(result_set, query, 10)
