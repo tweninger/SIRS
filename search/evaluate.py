@@ -110,8 +110,26 @@ class Evaluate:
                 'rr': rr, 'ndcg': ndcg}
 
     def calc_precision(self, tbl, query, k=100000):
-        # TODO Precision
-        return 0.0
+        tp = 0
+        fp = 0
+        if query not in self.rels:
+            print('No relevance judgements for query: ' + str(query))
+            self.missing = -1
+            return 0
+
+        for i in range(min(k,len(tbl))):
+            docid = tbl[i]
+            if docid not in self.rels[query]:
+                print('No relevance information for docID: ' + str(docid))
+                continue
+
+            rel = self.rels[query][docid]
+
+            if rel > Evaluate.REL_THRESH:
+                tp += 1
+            else:
+                fp += 1
+        return tp / max(1,(tp + fp))
 
     def calc_recall(self, tbl, query):
         tp = 0
@@ -128,9 +146,6 @@ class Evaluate:
         for docid in tbl:
             if docid not in self.rels[query]:
                 print('No relevance information for docID: ' + str(docid))
-                self.missing += 1
-                # HW3 Students, don'y copy the missing+=1 code from here.
-                # This will cause you to double/triple/... count missing docIDs.
                 continue
             rel = self.rels[query][docid]
 
@@ -143,20 +158,95 @@ class Evaluate:
         return tp / (tp + fn)
 
     def calc_f1(self, precision, recall, beta):
-        # TODO F1
-        return 0.
+        if (precision + recall) == 0:
+            return 0.0
+        return ((beta**2 + 1) * precision * recall) / (beta**2 * precision + recall)
 
     def calc_avg_prec(self, tbl, query):
-        # TODO MAP
-        return 0.
+        if query not in self.rels:
+            print('No relevance judgements for query: ' + str(query))
+            self.missing = -1
+            return 0
+
+        sumprec = 0
+
+        for i in range(len(tbl)):
+            docid = tbl[i]
+            if docid not in self.rels[query]:
+                print('No relevance information for docID: ' + str(docid))
+                self.missing += 1
+                continue
+            rel = self.rels[query][docid]
+
+            if rel > Evaluate.REL_THRESH:
+                sumprec += self.calc_precision(tbl, query, i+1)
+
+        cnt = 0
+        for docid in self.rels[query]:
+            rel = self.rels[query][docid]
+            if rel > Evaluate.REL_THRESH:
+                cnt += 1
+
+        if cnt == 0:
+            return 0
+        return sumprec / cnt
 
     def calc_rr(self, tbl, query):
-        # TODO RR
-        return 0.
+        if query not in self.rels:
+            print('No relevance judgements for query: ' + str(query))
+            self.missing = -1
+            return 0
+
+        for i in range(len(tbl)):
+            docid = tbl[i]
+            if docid not in self.rels[query]:
+                print('No relevance information for docID: ' + str(docid))
+                continue
+            rel = self.rels[query][docid]
+
+            if rel > Evaluate.REL_THRESH:
+                return 1.0/(i+1)
+        return 0.0
 
     def calc_ndcg(self, tbl, query):
-        #TODO NDCG
-        return 0.
+        if query not in self.rels:
+            print('No relevance judgements for query: ' + str(query))
+            self.missing = -1
+            return 0
+        dcg = 0
+        idcg = 0
+
+        for i in range(len(tbl)):
+            docid = tbl[i]
+            if docid not in self.rels[query]:
+                print('No relevance information for docID: ' + str(docid))
+                continue
+            rel = self.rels[query][docid]
+
+            num = 2.0**rel - 1.0
+            den = math.log2((i+1.0) + 1.0)
+            dcg += (num / den)
+
+        ideal = [(k, self.rels[query][k]) for k in sorted(self.rels[query], key=self.rels[query].get, reverse=True)]
+
+        i = 1
+        for docid, rel in ideal:
+            if i > len(tbl):
+                break #We only go as high as tbl.size
+
+            if rel is None:
+                print('No relevance information for docID: ' + str(docid))
+                continue
+
+            num = 2.0**rel - 1.0
+            den = math.log2(i + 1.0)
+            idcg += num / den
+            print(idcg)
+            i+=1
+
+        if idcg == 0:
+            return 0.0
+        return dcg / idcg
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
