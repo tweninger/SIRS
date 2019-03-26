@@ -155,7 +155,7 @@ class ResultSet:
 
     def sort(self, top_docs):
         results = list()
-        for i in range(self.result_size):
+        for i in range(len(self.scores)):
             results.append( (self.doc_ids[i], self.scores[i], self.occurrences[i]) )
         results = sorted(results, key=lambda x: x[1], reverse=True)
         self.doc_ids = list()
