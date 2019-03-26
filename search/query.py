@@ -1,7 +1,6 @@
 from index.inverted_index import InvertedIndex
 from index.lexicon import Lexicon
 from index.documents import WhitespaceTokenizer, CaseFoldingNormalizer, Fields, Field
-from index.direct_index import DirectIndex
 
 
 class Query:
