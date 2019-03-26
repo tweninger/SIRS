@@ -1,6 +1,7 @@
 from index.inverted_index import InvertedIndex
 from index.lexicon import Lexicon
 from index.documents import WhitespaceTokenizer, CaseFoldingNormalizer, Fields, Field
+from index.direct_index import DirectIndex
 
 
 class Query:
@@ -39,7 +40,6 @@ class Matching:
         alpha = 0.9
         beta = 0.75
         N_rel = 5
-        # you are welcome to experiment with there values.
 
         return self.match(query_terms)
 
