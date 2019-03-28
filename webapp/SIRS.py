@@ -37,11 +37,17 @@ def searcher():
         matching = Matching(BooleanRM())
         Fields().assign_weights(wgts)
         matching.add_score_modifier(BooleanScoreModifier())
+        result_set = matching.match(Query(query))
     elif model == 'Cosine':
         matching = Matching(CosineRM())
         Fields().assign_weights(wgts)
         matching.add_score_modifier(CosineScoreModifier())
-    result_set = matching.pseudo_relevance_match(Query(query))
+        result_set = matching.match(Query(query))
+    elif model == 'Cosine + Feedback':
+        matching = Matching(CosineRM())
+        Fields().assign_weights(wgts)
+        matching.add_score_modifier(CosineScoreModifier())
+        result_set = matching.pseudo_relevance_match(Query(query))
 
     g = Evaluate()
     evaluation_results = g.evaluate(result_set, query, 10)
@@ -50,9 +56,9 @@ def searcher():
     for i in range(result_set.result_size):
         doc_id = result_set.doc_ids[i]
         doc = DirectIndex().get_doc(doc_id-1)
-        title = doc.resources['title']
-        if title is None:
-            title = ''
+        title = ''
+        if 'title' in doc.resources:
+            title = doc.resources['title']
         results.append( {'title': title, 'docid': doc_id, 'url': doc.name} )
 
     data = {

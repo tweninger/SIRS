@@ -1,7 +1,8 @@
 from index.inverted_index import InvertedIndex
 from index.lexicon import Lexicon
 from index.documents import WhitespaceTokenizer, CaseFoldingNormalizer, Fields, Field
-
+from index.direct_index import DirectIndex
+import operator
 
 class Query:
     def __init__(self, query_string, tokenizer = WhitespaceTokenizer, normalizer = CaseFoldingNormalizer):
@@ -35,11 +36,44 @@ class Matching:
                 print('Term', query_term, 'not found. Skipping...')
 
     def pseudo_relevance_match(self, query_terms):
-        # TODO implement pseudo relevance feedback matching
         alpha = 0.9
         beta = 0.75
         N_rel = 5
 
+        q_terms = dict()
+        for term, _ in query_terms.terms:
+            if term not in q_terms:
+                q_terms[term] = 1.0
+            else:
+                q_terms[term] += 1.0
+
+        rs: ResultSet = self.match(query_terms)
+
+        rel_terms = dict()
+        for id in rs.doc_ids[:N_rel]:
+            title = DirectIndex().get_doc(id - 1).resources['title']
+            toks = query_terms.tokenizer.tokenizer_str(title)
+            toks = query_terms.normalizer.normalize(toks)
+            for tok in toks:
+                if tok not in rel_terms:
+                    rel_terms[tok] = 1.0
+                else:
+                    rel_terms[tok] += 1.0
+
+        for term in rel_terms:
+            rel_terms[term] /= N_rel
+
+        query_terms.terms = []
+        for term in set(q_terms.keys()).union(rel_terms.keys()):
+            q_wgt = 0.0
+            r_wgt = 0.0
+            if term in q_terms:
+                q_wgt = q_terms[term]
+            if term in rel_terms:
+                r_wgt = rel_terms[term]
+            query_terms.terms.append((term, alpha * q_wgt + beta * r_wgt))
+
+        print(query_terms.terms)
         return self.match(query_terms)
 
     def match(self, query_terms):
