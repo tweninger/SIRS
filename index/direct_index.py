@@ -31,7 +31,7 @@ class DirectIndex:
                     for __len in lens:
                         x = __len.split(bytes(':', encoding='utf-8'))
                         k = int(x[0])
-                        v = int(x[0])
+                        v = int(x[1])
                         if k not in temp_fields:
                             temp_fields[k] = Field(k)
                             field_counts[temp_fields[k].field] = v
@@ -41,6 +41,9 @@ class DirectIndex:
 
         def get_num_docs(self):
             return len(self.offsets)
+
+        def get_num_tokens(self, field):
+            return self.field_counts[field]
 
         def get_doc(self, docid):
             offset = self.offsets[docid]
