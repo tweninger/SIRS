@@ -27,12 +27,21 @@ class Node(object):
 class PageRank(object):
 
     def __init__(self, webgraph, num_docs):
+        """
+        Initialize PageRank object, and loads the PageRank graph.
+
+        :param webgraph: A file from which web graph will be loaded
+        :param num_docs: Number of documents
+        """
+
+        # IMPORTANT - Node ids should correspond to docids. (index starts at 1)
         self.graph = list()
-        for n in range(0, num_docs):
+        for n in range(1, num_docs+1):
             self.graph.append(Node(n))
+
+        # TODO - load graph from file. Create edges within Node object.
+
 
     def calculate_pagerank(self):
         pass
-
-    def get_pagerank(self, docid):
-        return 0.0
+        # TODO - fill in this function

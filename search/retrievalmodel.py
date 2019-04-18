@@ -1,6 +1,7 @@
 import abc, math
 from search.query import ResultSet, Query
 from index.direct_index import DirectIndex
+from index.inverted_index import Posting
 
 
 class RetrievalModel(abc.ABC):
@@ -72,3 +73,36 @@ class CosineScoreModifier (ScoreModifier):
     def modify_scores(self, index, query: Query, result_set: ResultSet, field):
         for i in range(len(result_set.scores)):
             result_set.scores[i] = result_set.scores[i] / DirectIndex().get_doc(result_set.doc_ids[i]-1).get_num_tokens(field.field)
+
+
+class JelinekMercerRM (RetrievalModel):
+    def score(self, posting : Posting, document_frequency, field):
+        lambd = 0.2
+        N_d = DirectIndex().get_doc(posting.doc - 1).get_num_tokens(field.field)
+        N = DirectIndex().get_num_tokens(field.field)
+        lhs = (1-lambd) * posting.frequency / N_d
+        rhs = lambd * document_frequency / N
+        return - math.log(lhs + rhs)
+
+
+class DirichletRM (RetrievalModel):
+    def score(self, posting : Posting, document_frequency, field):
+        moo = 200
+        N_d = DirectIndex().get_doc(posting.doc - 1).get_num_tokens(field.field)
+        N = DirectIndex().get_num_tokens(field.field)
+        lhs = (N_d/(N_d+moo)) * (posting.frequency / N_d)
+        rhs = (moo/(moo+N_d)) * (document_frequency / N)
+        return - math.log(lhs + rhs)
+
+
+class BM25RM (RetrievalModel):
+    def score(self, posting, document_frequency, field):
+        k1 = 2.0
+        b = 0.75
+        idf = math.log2((DirectIndex().get_num_docs() - document_frequency)/document_frequency)
+        num = (k1+1)*posting.frequency
+        N_d = DirectIndex().get_doc(posting.doc - 1).get_num_tokens(field.field)
+        N = DirectIndex().get_num_docs()
+        avgdl = DirectIndex().get_num_tokens(field.field) / N
+        den = k1 * ((1-b) + b*(N_d/avgdl) ) + posting.frequency
+        return idf * (num/den)

@@ -1,5 +1,6 @@
 from flask import Flask, request, json, render_template
-from search.retrievalmodel import BooleanRM, BooleanScoreModifier, CosineRM, CosineScoreModifier
+from search.retrievalmodel import BooleanRM, BooleanScoreModifier, CosineRM, CosineScoreModifier, \
+    JelinekMercerRM, DirichletRM, BM25RM, PageRankScoreModifier
 from search.query import Matching, Query
 from search.evaluate import Evaluate
 from index.documents import Fields
@@ -48,7 +49,31 @@ def searcher():
         Fields().assign_weights(wgts)
         matching.add_score_modifier(CosineScoreModifier())
         result_set = matching.pseudo_relevance_match(Query(query))
-
+    elif model == 'JelinekMercer':
+        matching = Matching(JelinekMercerRM())
+        Fields().assign_weights(wgts)
+        result_set = matching.match(Query(query))
+    elif model == 'JelinekMercer + Feedback':
+        matching = Matching(JelinekMercerRM())
+        Fields().assign_weights(wgts)
+        result_set = matching.pseudo_relevance_match(Query(query))
+    elif model == 'Dirichlet':
+        matching = Matching(DirichletRM())
+        Fields().assign_weights(wgts)
+        result_set = matching.match(Query(query))
+    elif model == 'Dirichlet + Feedback':
+        matching = Matching(DirichletRM())
+        Fields().assign_weights(wgts)
+        result_set = matching.pseudo_relevance_match(Query(query))
+    elif model == 'BM25':
+        matching = Matching(BM25RM())
+        Fields().assign_weights(wgts)
+        result_set = matching.match(Query(query))
+    elif model == 'BM25 + Feedback':
+        matching = Matching(BM25RM())
+        Fields().assign_weights(wgts)
+        result_set = matching.pseudo_relevance_match(Query(query))
+    #TODO Add more model configurations to match index.html
     g = Evaluate()
     evaluation_results = g.evaluate(result_set, query, 10)
 
