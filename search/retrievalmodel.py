@@ -94,6 +94,15 @@ class DirichletRM (RetrievalModel):
         rhs = (moo/(moo+N_d)) * (document_frequency / N)
         return - math.log(lhs + rhs)
 
+class PageRankScoreModifier (ScoreModifier):
+
+    def __init__(self, pr_wgt):
+        self.pr_wgt = pr_wgt
+
+    def modify_scores(self, index, query: Query, result_set: ResultSet, field):
+        for i in range(len(result_set.scores)):
+            result_set.scores[i] = result_set.scores[i] + (self.pr_wgt * math.log(float(DirectIndex().get_doc(result_set.doc_ids[i]-1).get_resources()['PR'])+1))
+
 
 class BM25RM (RetrievalModel):
     def score(self, posting, document_frequency, field):
